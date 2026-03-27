@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Multiplication Calculator</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0e0e0e;
+        --surface: #1a1a1a;
+        --accent: #f5c518;
+        --accent2: #ff6b35;
+        --text: #f0f0f0;
+        --muted: #555;
+        --border: #2e2e2e;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "DM Mono", monospace;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+      }
+
+      /* Background grid */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(var(--border) 1px, transparent 1px),
+          linear-gradient(90deg, var(--border) 1px, transparent 1px);
+        background-size: 48px 48px;
+        opacity: 0.4;
+        pointer-events: none;
+      }
+
+      /* Glow blob */
+      body::after {
+        content: "";
+        position: fixed;
+        width: 500px;
+        height: 500px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(245, 197, 24, 0.08) 0%,
+          transparent 70%
+        );
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        animation: pulse 4s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: translate(-50%, -50%) scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: translate(-50%, -50%) scale(1.15);
+          opacity: 0.6;
+        }
+      }
+
+      .card {
+        position: relative;
+        z-index: 1;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 48px 40px 40px;
+        width: 380px;
+        box-shadow:
+          0 0 0 1px #000,
+          0 32px 80px rgba(0, 0, 0, 0.6);
+        animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(40px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .tag {
+        font-family: "DM Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 0.2em;
+        color: var(--accent);
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+
+      h1 {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 52px;
+        letter-spacing: 0.03em;
+        line-height: 1;
+        color: var(--text);
+        margin-bottom: 36px;
+      }
+
+      h1 span {
+        color: var(--accent);
+      }
+
+      .input-row {
+        display: grid;
+        grid-template-columns: 1fr 40px 1fr;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 24px;
+      }
+
+      .times-symbol {
+        text-align: center;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 28px;
+        color: var(--accent2);
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      label {
+        font-size: 10px;
+        letter-spacing: 0.15em;
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+
+      input[type="number"] {
+        width: 100%;
+        background: #111;
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        color: var(--text);
+        font-family: "DM Mono", monospace;
+        font-size: 22px;
+        font-weight: 500;
+        padding: 12px 14px;
+        outline: none;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+        -moz-appearance: textfield;
+      }
+
+      input[type="number"]::-webkit-outer-spin-button,
+      input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+      }
+
+      input[type="number"]:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(245, 197, 24, 0.12);
+      }
+
+      .equals-line {
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--accent),
+          transparent
+        );
+        margin-bottom: 24px;
+        opacity: 0.5;
+      }
+
+      .result-block {
+        background: #111;
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 20px 18px;
+        margin-bottom: 24px;
+        min-height: 80px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .result-label {
+        font-size: 10px;
+        letter-spacing: 0.15em;
+        color: var(--muted);
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+
+      .result-value {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 48px;
+        color: var(--accent);
+        letter-spacing: 0.02em;
+        line-height: 1;
+        transition:
+          transform 0.15s ease,
+          opacity 0.15s ease;
+      }
+
+      .result-value.pop {
+        animation: pop 0.25s ease;
+      }
+
+      @keyframes pop {
+        0% {
+          transform: scale(0.9);
+          opacity: 0.5;
+        }
+        60% {
+          transform: scale(1.04);
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      .result-equation {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 4px;
+        letter-spacing: 0.05em;
+      }
+
+      button.calc {
+        width: 100%;
+        background: var(--accent);
+        color: #0e0e0e;
+        border: none;
+        border-radius: 3px;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 20px;
+        letter-spacing: 0.1em;
+        padding: 16px;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          transform 0.1s;
+      }
+
+      button.calc:hover {
+        background: #ffd84d;
+      }
+      button.calc:active {
+        transform: scale(0.98);
+      }
+
+      .shortcuts {
+        margin-top: 18px;
+        font-size: 10px;
+        color: var(--muted);
+        text-align: center;
+        letter-spacing: 0.1em;
+      }
+
+      .shortcuts kbd {
+        background: #222;
+        border: 1px solid #333;
+        border-radius: 2px;
+        padding: 1px 5px;
+        font-size: 10px;
+        color: #888;
+      }
+
+      /* History panel */
+      .history {
+        margin-top: 28px;
+        border-top: 1px solid var(--border);
+        padding-top: 20px;
+      }
+
+      .history-title {
+        font-size: 10px;
+        letter-spacing: 0.15em;
+        color: var(--muted);
+        text-transform: uppercase;
+        margin-bottom: 10px;
+      }
+
+      .history-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-height: 120px;
+        overflow-y: auto;
+      }
+
+      .history-list li {
+        font-size: 12px;
+        color: #666;
+        display: flex;
+        justify-content: space-between;
+        transition: color 0.15s;
+      }
+
+      .history-list li:hover {
+        color: var(--text);
+      }
+
+      .history-list li .h-eq {
+        color: #444;
+      }
+      .history-list li .h-res {
+        color: var(--accent2);
+        font-weight: 500;
+      }
+
+      .history-empty {
+        font-size: 11px;
+        color: #333;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="tag">Calculator</div>
+      <h1>MULTI<span>×</span><br />PLY</h1>
+
+      <div class="input-row">
+        <div class="field">
+          <label for="numA">First</label>
+          <input id="numA" type="number" value="12" placeholder="0" />
+        </div>
+        <div class="times-symbol">×</div>
+        <div class="field">
+          <label for="numB">Second</label>
+          <input id="numB" type="number" value="8" placeholder="0" />
+        </div>
+      </div>
+
+      <div class="equals-line"></div>
+
+      <div class="result-block">
+        <div class="result-label">Result</div>
+        <div class="result-value" id="result">—</div>
+        <div class="result-equation" id="equation"></div>
+      </div>
+
+      <button class="calc" onclick="calculate()">CALCULATE</button>
+
+      <div class="shortcuts">Press <kbd>Enter</kbd> to compute</div>
+
+      <div class="history">
+        <div class="history-title">History</div>
+        <ul class="history-list" id="historyList">
+          <li class="history-empty">No calculations yet.</li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      const numA = document.getElementById("numA");
+      const numB = document.getElementById("numB");
+      const resultEl = document.getElementById("result");
+      const equationEl = document.getElementById("equation");
+      const historyList = document.getElementById("historyList");
+      const history = [];
+
+      function calculate() {
+        const a = parseFloat(numA.value);
+        const b = parseFloat(numB.value);
+
+        if (isNaN(a) || isNaN(b)) {
+          resultEl.textContent = "ERR";
+          equationEl.textContent = "Enter valid numbers";
+          return;
+        }
+
+        const product = a * b;
+        const formatted = Number.isInteger(product)
+          ? product.toLocaleString()
+          : product.toLocaleString(undefined, { maximumFractionDigits: 8 });
+
+        resultEl.textContent = formatted;
+        equationEl.textContent = `${a} × ${b} = ${formatted}`;
+
+        // Pop animation
+        resultEl.classList.remove("pop");
+        void resultEl.offsetWidth;
+        resultEl.classList.add("pop");
+
+        // Add to history
+        history.unshift({ a, b, result: formatted });
+        if (history.length > 6) history.pop();
+        renderHistory();
+      }
+
+      function renderHistory() {
+        historyList.innerHTML = "";
+        if (history.length === 0) {
+          historyList.innerHTML =
+            '<li class="history-empty">No calculations yet.</li>';
+          return;
+        }
+        history.forEach((h) => {
+          const li = document.createElement("li");
+          li.innerHTML = `<span class="h-eq">${h.a} × ${h.b}</span><span class="h-res">= ${h.result}</span>`;
+          historyList.appendChild(li);
+        });
+      }
+
+      // Live calculation on input
+      [numA, numB].forEach((el) => el.addEventListener("input", calculate));
+
+      // Enter key
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") calculate();
+      });
+
+      // Initial calculation
+      calculate();
+    </script>
+  </body>
+</html>
