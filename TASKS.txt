@@ -1,0 +1,4 @@
+Add : Samragya
+Delete: Sangam
+Multiply: Binayak
+Divide: Mridul
