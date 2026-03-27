@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Calculator – Add</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0d0f;
+      --surface:   #18181c;
+      --panel:     #1e1e24;
+      --accent:    #f0c040;
+      --accent2:   #e05a2b;
+      --text:      #f2f0e8;
+      --muted:     #6b6a72;
+      --border:    #2e2e38;
+      --radius:    14px;
+      --font-mono: 'Space Mono', monospace;
+      --font-disp: 'Bebas Neue', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    /* Noise grain overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.35;
+    }
+
+    /* Ambient glow blobs */
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .blob-1 { width: 400px; height: 400px; background: rgba(240,192,64,.07); top: -80px; left: -100px; }
+    .blob-2 { width: 300px; height: 300px; background: rgba(224,90,43,.06); bottom: -60px; right: -80px; }
+
+    /* Calculator wrapper */
+    .calc {
+      position: relative;
+      z-index: 1;
+      width: 340px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 28px 24px 24px;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.04) inset,
+        0 32px 80px rgba(0,0,0,.6),
+        0 0 40px rgba(240,192,64,.05);
+      animation: slideUp .5s cubic-bezier(.22,1,.36,1) both;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(28px) scale(.97); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* Label */
+    .label {
+      font-family: var(--font-disp);
+      letter-spacing: .14em;
+      font-size: 13px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    /* Display */
+    .display {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 20px;
+      min-height: 82px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    .display .expression {
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: .05em;
+      min-height: 18px;
+      word-break: break-all;
+      transition: color .2s;
+    }
+
+    .display .result {
+      font-family: var(--font-disp);
+      font-size: 42px;
+      letter-spacing: .04em;
+      color: var(--text);
+      text-align: right;
+      line-height: 1;
+      transition: transform .15s cubic-bezier(.22,1,.36,1), color .2s;
+      word-break: break-all;
+    }
+
+    .display .result.pop {
+      animation: pop .25s cubic-bezier(.22,1,.36,1);
+    }
+
+    @keyframes pop {
+      0%   { transform: scale(.92); }
+      60%  { transform: scale(1.04); }
+      100% { transform: scale(1); }
+    }
+
+    /* Input grid */
+    .inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .input-group input {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 20px;
+      padding: 12px 14px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      width: 100%;
+    }
+
+    .input-group input::placeholder { color: var(--muted); font-size: 14px; }
+    .input-group input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(240,192,64,.12);
+    }
+
+    /* Operator badge */
+    .op-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      align-self: flex-end;
+      width: 36px;
+      height: 36px;
+      background: rgba(240,192,64,.1);
+      border: 1px solid rgba(240,192,64,.25);
+      border-radius: 50%;
+      font-family: var(--font-disp);
+      font-size: 22px;
+      color: var(--accent);
+      margin-bottom: 2px;
+      flex-shrink: 0;
+    }
+
+    .inputs-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .inputs-row .input-group { flex: 1; }
+
+    /* Buttons */
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      padding: 14px;
+      transition: transform .12s, box-shadow .15s, background .15s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,.08);
+      opacity: 0;
+      transition: opacity .15s;
+    }
+    .btn:hover::after  { opacity: 1; }
+    .btn:active { transform: scale(.96); }
+
+    .btn-add {
+      background: var(--accent);
+      color: #0d0d0f;
+      grid-column: span 2;
+      font-family: var(--font-disp);
+      font-size: 18px;
+      letter-spacing: .12em;
+      padding: 16px;
+      box-shadow: 0 4px 20px rgba(240,192,64,.25);
+    }
+    .btn-add:hover { box-shadow: 0 6px 28px rgba(240,192,64,.4); }
+
+    .btn-clear {
+      background: var(--panel);
+      color: var(--accent2);
+      border: 1px solid var(--border);
+    }
+
+    .btn-swap {
+      background: var(--panel);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    /* History */
+    .history-wrap {
+      margin-top: 18px;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+    }
+
+    .history-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .history-title {
+      font-family: var(--font-disp);
+      font-size: 12px;
+      letter-spacing: .14em;
+      color: var(--muted);
+    }
+
+    .history-clear {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: color .15s, background .15s;
+    }
+    .history-clear:hover { color: var(--accent2); background: rgba(224,90,43,.08); }
+
+    .history-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 110px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .history-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--panel);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 12px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background .15s, color .15s;
+      animation: fadeIn .25s ease both;
+    }
+
+    .history-list li:hover { background: var(--border); color: var(--text); }
+
+    .history-list li .h-result {
+      font-family: var(--font-disp);
+      font-size: 15px;
+      color: var(--accent);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* Error shake */
+    .shake { animation: shake .3s ease; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-6px); }
+      40%      { transform: translateX(6px); }
+      60%      { transform: translateX(-4px); }
+      80%      { transform: translateX(4px); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<div class="calc" id="calc">
+
+  <!-- Display -->
+  <div class="display" id="display">
+    <span class="expression" id="expr"></span>
+    <span class="result" id="result">0</span>
+  </div>
+
+  <!-- Inputs -->
+  <div class="inputs-row">
+    <div class="input-group">
+      <span class="label">Number A</span>
+      <input type="number" id="numA" placeholder="0" />
+    </div>
+
+    <div class="op-badge">+</div>
+
+    <div class="input-group">
+      <span class="label">Number B</span>
+      <input type="number" id="numB" placeholder="0" />
+    </div>
+  </div>
+
+  <!-- Buttons -->
+  <div class="btn-row">
+    <button class="btn btn-clear" onclick="clearAll()">✕ Clear</button>
+    <button class="btn btn-swap" onclick="swapValues()">⇄ Swap</button>
+    <button class="btn btn-add" onclick="addNumbers()">= ADD</button>
+  </div>
+
+  <!-- History -->
+  <div class="history-wrap">
+    <div class="history-head">
+      <span class="history-title">HISTORY</span>
+      <button class="history-clear" onclick="clearHistory()">clear all</button>
+    </div>
+    <ul class="history-list" id="historyList">
+      <li style="justify-content:center; cursor:default;">
+        <span style="font-size:11px">No calculations yet</span>
+      </li>
+    </ul>
+  </div>
+
+</div>
+
+<script>
+  const numAInput   = document.getElementById('numA');
+  const numBInput   = document.getElementById('numB');
+  const resultEl    = document.getElementById('result');
+  const exprEl      = document.getElementById('expr');
+  const historyList = document.getElementById('historyList');
+  const calc        = document.getElementById('calc');
+
+  let history = [];
+
+  // Allow Enter key to trigger add
+  [numAInput, numBInput].forEach(inp => {
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') addNumbers(); });
+  });
+
+  function fmt(n) {
+    // Nicely format: if integer show as int, else up to 10 decimals
+    return Number.isInteger(n) ? n.toString() : parseFloat(n.toFixed(10)).toString();
+  }
+
+  function addNumbers() {
+    const rawA = numAInput.value.trim();
+    const rawB = numBInput.value.trim();
+
+    if (rawA === '' || rawB === '') {
+      shake();
+      exprEl.textContent = 'Enter both numbers!';
+      exprEl.style.color = 'var(--accent2)';
+      return;
+    }
+
+    const a = parseFloat(rawA);
+    const b = parseFloat(rawB);
+
+    if (isNaN(a) || isNaN(b)) {
+      shake();
+      exprEl.textContent = 'Invalid numbers!';
+      exprEl.style.color = 'var(--accent2)';
+      return;
+    }
+
+    const sum = a + b;
+    const expression = `${fmt(a)}  +  ${fmt(b)}  =`;
+
+    exprEl.textContent  = expression;
+    exprEl.style.color  = '';
+    resultEl.textContent = fmt(sum);
+
+    // Pop animation
+    resultEl.classList.remove('pop');
+    void resultEl.offsetWidth; // reflow
+    resultEl.classList.add('pop');
+
+    // Add to history
+    addToHistory(fmt(a), fmt(b), fmt(sum));
+  }
+
+  function clearAll() {
+    numAInput.value  = '';
+    numBInput.value  = '';
+    resultEl.textContent = '0';
+    exprEl.textContent   = '';
+    exprEl.style.color   = '';
+    numAInput.focus();
+  }
+
+  function swapValues() {
+    [numAInput.value, numBInput.value] = [numBInput.value, numAInput.value];
+  }
+
+  function addToHistory(a, b, sum) {
+    history.unshift({ a, b, sum });
+    renderHistory();
+  }
+
+  function renderHistory() {
+    historyList.innerHTML = '';
+
+    if (history.length === 0) {
+      const li = document.createElement('li');
+      li.style.cssText = 'justify-content:center; cursor:default;';
+      li.innerHTML = '<span style="font-size:11px">No calculations yet</span>';
+      historyList.appendChild(li);
+      return;
+    }
+
+    history.forEach(({ a, b, sum }) => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <span>${a} + ${b}</span>
+        <span class="h-result">${sum}</span>
+      `;
+      // Click to restore
+      li.addEventListener('click', () => {
+        numAInput.value = a;
+        numBInput.value = b;
+        resultEl.textContent = sum;
+        exprEl.textContent   = `${a}  +  ${b}  =`;
+        exprEl.style.color   = '';
+      });
+      historyList.appendChild(li);
+    });
+  }
+
+  function clearHistory() {
+    history = [];
+    renderHistory();
+  }
+
+  function shake() {
+    calc.classList.remove('shake');
+    void calc.offsetWidth;
+    calc.classList.add('shake');
+    calc.addEventListener('animationend', () => calc.classList.remove('shake'), { once: true });
+  }
+</script>
+</body>
+</html>
